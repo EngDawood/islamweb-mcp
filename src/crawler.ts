@@ -12,6 +12,8 @@ export interface CrawlOptions {
   concurrency?: number;
   delayMs?: number;
   maxRetries?: number;
+  /** Stop dispatching new fetches once Date.now() passes this (in-flight ones still finish). */
+  deadline?: number;
   onProgress?: (info: CrawlProgress) => void;
 }
 
@@ -28,6 +30,7 @@ export interface CrawlResult {
   fetched: number;
   skipped: number;
   failed: { id: number; error: string }[];
+  stoppedByDeadline: boolean;
 }
 
 /** Reads the JSONL output file (if any) and returns the set of ids already fetched, for resuming. */
@@ -65,6 +68,7 @@ export async function crawlRange(opts: CrawlOptions): Promise<CrawlResult> {
     concurrency = 3,
     delayMs = 250,
     maxRetries = 4,
+    deadline,
     onProgress,
   } = opts;
 
@@ -78,11 +82,17 @@ export async function crawlRange(opts: CrawlOptions): Promise<CrawlResult> {
 
   const total = endId - startId + 1;
   let done = total - ids.length;
+  let succeeded = 0;
   const failed: { id: number; error: string }[] = [];
+  let stoppedByDeadline = false;
 
   let cursor = 0;
   async function worker(): Promise<void> {
     while (cursor < ids.length) {
+      if (deadline !== undefined && Date.now() >= deadline) {
+        stoppedByDeadline = true;
+        return;
+      }
       const id = ids[cursor++];
       let lastError: unknown;
       let entry: LibraryEntry | null = null;
@@ -103,6 +113,7 @@ export async function crawlRange(opts: CrawlOptions): Promise<CrawlResult> {
       if (entry) {
         await appendFile(outFile, JSON.stringify(entry) + "\n", "utf8");
         done++;
+        succeeded++;
         onProgress?.({ id, done, total, ok: true });
       } else {
         done++;
@@ -120,9 +131,10 @@ export async function crawlRange(opts: CrawlOptions): Promise<CrawlResult> {
 
   return {
     outFile,
-    fetched: total - completed.size - failed.length,
+    fetched: succeeded,
     skipped: completed.size,
     failed,
+    stoppedByDeadline,
   };
 }
 

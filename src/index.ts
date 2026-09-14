@@ -8,6 +8,7 @@ import { compileJsonlToJson, readCrawlStats } from "./crawler.js";
 import { startCrawlJob, getJob, listJobs } from "./jobs.js";
 import { searchJsonl } from "./search.js";
 import { LISAN_AL_ARAB } from "./lisanAlArab.js";
+import { DICTIONARIES } from "./books.js";
 
 const DATA_DIR = process.env.ISLAMWEB_DATA_DIR ?? path.resolve(process.cwd(), "data");
 const LISAN_JSONL = path.join(DATA_DIR, "lisan-al-arab.jsonl");
@@ -55,6 +56,19 @@ server.registerTool(
       jsonFile: LISAN_JSON,
     });
   }
+);
+
+server.registerTool(
+  "islamweb_list_dictionaries",
+  {
+    title: "List known islamweb dictionaries",
+    description:
+      "Returns every dictionary this server knows about under islamweb's library subject 73 " +
+      "(معاجم اللغة): bookId, key, title, author, and id range. This is the registry the " +
+      "GitHub Actions crawl workflow and the crawl-all-dictionaries CLI command iterate over.",
+    inputSchema: {},
+  },
+  async () => textResult(DICTIONARIES)
 );
 
 server.registerTool(

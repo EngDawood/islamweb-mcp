@@ -1,0 +1,59 @@
+name: Crawl islamweb dictionaries
+
+on:
+  schedule:
+    # Every 6 hours. Cron is UTC.
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "Time budget for this run, in minutes"
+        required: false
+        default: "320"
+
+permissions:
+  contents: write
+
+# Don't let two crawls race on the same JSONL files; queue instead of cancelling
+# so an in-progress run always gets to commit before the next one starts.
+concurrency:
+  group: crawl-dictionaries
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/eager-archimedes-e8ku25
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Crawl all dictionaries (resumable, time-boxed)
+        run: |
+          node dist/cli.js crawl-all-dictionaries \
+            --minutes="${{ github.event.inputs.minutes || '320' }}" \
+            --concurrency=6 --delay=100
+
+      - name: Commit and push any new data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "No new data this run."
+            exit 0
+          fi
+          STAT="$(git diff --cached --stat | tail -n 1)"
+          git commit -m "Automated islamweb dictionary crawl update" -m "$STAT"
+          git fetch origin claude/eager-archimedes-e8ku25
+          git rebase origin/claude/eager-archimedes-e8ku25
+          git push origin HEAD:claude/eager-archimedes-e8ku25
