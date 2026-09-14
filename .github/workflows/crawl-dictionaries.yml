@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: claude/eager-archimedes-e8ku25
+          ref: main
 
       - uses: actions/setup-node@v4
         with:
@@ -54,6 +54,6 @@ jobs:
           fi
           STAT="$(git diff --cached --stat | tail -n 1)"
           git commit -m "Automated islamweb dictionary crawl update" -m "$STAT"
-          git fetch origin claude/eager-archimedes-e8ku25
-          git rebase origin/claude/eager-archimedes-e8ku25
-          git push origin HEAD:claude/eager-archimedes-e8ku25
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
