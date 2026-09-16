@@ -45,8 +45,31 @@ npm run db:schema:remote
 
 ## 4. Import the crawled data
 
-Generates `sql-import/<dictionary>.sql` from `../data/<dictionary>.json`
-(gitignored — regenerate whenever you re-crawl):
+`entries_fts` stays in sync automatically via the triggers in `schema.sql`
+(fires on every insert/update/delete — no separate rebuild step needed), so
+either import path below is enough on its own.
+
+**Recommended: `scripts/import-via-api.mjs`** — imports straight from
+`../data/<key>.json` via the D1 REST API using bound parameters, one
+dictionary at a time:
+
+```bash
+CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... node scripts/import-via-api.mjs lisan-al-arab
+CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... node scripts/import-via-api.mjs al-qamus-al-muhit
+CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... node scripts/import-via-api.mjs al-nihaya-fi-gharib-al-hadith
+CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... node scripts/import-via-api.mjs maqayis-al-lugha
+CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... node scripts/import-via-api.mjs mukhtar-al-sihah
+```
+
+Bound params keep the compiled SQL text small no matter how long an entry's
+text is, so — unlike the raw-SQL path below — it isn't subject to D1's
+per-statement length limit. It's slower (one HTTP round trip per ~6-row
+batch) but that only matters for a first bulk load; the crawl workflow uses
+it for the small incremental deltas each 6h run produces.
+
+**Alternative: raw SQL via `export:sql`** — generates
+`sql-import/<dictionary>.sql` from `../data/<dictionary>.json` (gitignored
+— regenerate whenever you re-crawl):
 
 ```bash
 npm run export:sql
@@ -63,11 +86,18 @@ npx wrangler d1 execute islamweb-dictionaries --remote --file=./sql-import/maqay
 npx wrangler d1 execute islamweb-dictionaries --remote --file=./sql-import/mukhtar-al-sihah.sql
 ```
 
-Then rebuild the full-text index once, over everything you just loaded:
+`export-to-sql.mjs` batches rows by byte size to stay under that limit, but
+a single dictionary entry whose escaped text alone exceeds the limit (this
+has happened with a Lisan al-Arab entry, ~224KB of escaped SQL for one row)
+can't be split further — use `import-via-api.mjs` for that dictionary
+instead.
 
-```bash
-npx wrangler d1 execute islamweb-dictionaries --remote --command "INSERT INTO entries_fts(entries_fts) VALUES('rebuild');"
-```
+D1's free tier caps writes at 100,000 "rows written" per account per day
+(each row insert costs ~3 — the row itself plus its primary key and
+`idx_entries_dict_lemma` index entries), so a full 5-dictionary bulk load
+(~31,000 entries, ~93,000+ rows written) can come close to or exceed a
+single day's quota. Spread it across days, or do it on a Workers paid plan,
+if you hit the cap.
 
 ## 5. Deploy
 
