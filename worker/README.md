@@ -96,6 +96,22 @@ local stdio-to-HTTP bridge:
 }
 ```
 
+## Keeping D1 in sync automatically
+
+`.github/workflows/crawl-dictionaries.yml` syncs D1 to `data/` right after
+every crawl that produced new data (same 6h cadence as the crawl itself —
+syncing more often than the source data changes would just re-push
+identical rows). It runs `worker/scripts/import-via-api.mjs` for each
+dictionary (D1 REST API with bound params, so it isn't subject to the
+`SQLITE_TOOBIG` statement-length limit `export-to-sql.mjs` can hit on
+dictionaries with very large single entries), then rebuilds the FTS index.
+
+For this to run, add two repo secrets (Settings → Secrets and variables →
+Actions): `CLOUDFLARE_API_TOKEN` (a token with D1 edit permission) and
+`CLOUDFLARE_ACCOUNT_ID`. Without them, the crawl and commit still happen —
+only the D1 sync step is skipped (it'll fail loudly if the secrets are
+missing but the workflow reaches that step).
+
 ## Local development
 
 ```bash
