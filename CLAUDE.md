@@ -25,21 +25,19 @@ Two things live in this repo:
 - Repo was renamed `islamweb` → `islamweb-mcp`; remote `origin` points at
   `github.com/EngDawood/islamweb-mcp`.
 
-## `wrangler.jsonc` location (intentional, non-default)
+## `wrangler.jsonc` location
 
-It lives at the **repo root**, not in `worker/` — `main` inside it is
-`worker/src/index.ts`, and `wrangler` (local CLI) auto-discovers it by
-walking up from `worker/` when you run `npm run dev`/`deploy` there. This
-was a deliberate move at the user's request.
-
-**Tradeoff to know about:** this only works for the local `wrangler` CLI. If
-this project is ever connected to Cloudflare's Dashboard Git integration
-(Workers Builds / auto-deploy on push), that flow looks for `wrangler.jsonc`
-*inside* whatever "Root directory" you configure there — it does not walk up
-parent directories. So Root directory = `worker` would not find the config
-in that scenario; `wrangler.jsonc` would need to move back into `worker/`
-first. Ask before doing that move unprompted — the user chose the split
-layout deliberately for the CLI-deploy workflow.
+It lives in **`worker/`**, alongside `package.json`. This was briefly moved
+to the repo root (so the local CLI could auto-discover it by walking up from
+`worker/`), then moved back after a live Cloudflare Dashboard Git-integrated
+build (Workers Builds, Root directory unset/root) failed with
+`Could not resolve "agents/mcp"` — that build flow runs `npm install` and
+`wrangler deploy` from a single configured "Root directory" and does not
+walk up parent directories the way the local CLI does, so `agents` (a
+`worker/package.json`-only dependency) never got installed. Keep
+`wrangler.jsonc` inside `worker/`, and if using Dashboard Git integration,
+set that Worker's Settings → Build → Root directory to `worker`. Don't move
+it back to root without checking how deploy is actually happening first.
 
 ## Data size / GitHub limits
 

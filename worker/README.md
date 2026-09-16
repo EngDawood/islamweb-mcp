@@ -13,6 +13,14 @@ import of one dictionary) — see below to deploy it to your own account.
 I don't have your Cloudflare credentials, so the `wrangler login` / `d1
 create` / `deploy` steps are yours to run.
 
+**If deploying via Cloudflare Dashboard's Git integration** (Workers Builds —
+auto-deploy on push), set **Root directory = `worker`** in that Worker's
+Settings → Build. That flow runs `npm install` and `wrangler deploy` from
+whatever Root directory you configure, so it needs to land inside `worker/`
+(where `package.json` and `wrangler.jsonc` both live) — a repo-root Root
+directory fails with `Could not resolve "agents/mcp"` because `agents` is
+only a dependency of `worker/package.json`, never installed at the repo root.
+
 ## 1. Install
 
 ```bash
@@ -27,10 +35,7 @@ npx wrangler login          # opens a browser to authorize this machine
 npm run db:create           # prints a database_id
 ```
 
-Paste the printed `database_id` into `../wrangler.jsonc`'s `d1_databases[0].database_id`
-(it's currently a placeholder). The config file lives at the repo root, not in
-this folder — `wrangler` auto-discovers it by walking up from `worker/`, so
-every command below still runs from inside `worker/` as normal.
+Paste the printed `database_id` into `wrangler.jsonc`'s `d1_databases[0].database_id`.
 
 ## 3. Create the schema
 
