@@ -12,7 +12,7 @@ const OUT_DIR = path.resolve(__dirname, "../sql-import");
 // D1 rejects overly large single statements (SQLITE_TOOBIG). Some entries
 // (e.g. long Lisan al-Arab entries) run tens of KB each, so batch by
 // cumulative byte size rather than a fixed row count.
-const MAX_STATEMENT_BYTES = 80_000;
+const MAX_STATEMENT_BYTES = 40_000;
 
 function sqlString(value) {
   if (value === null || value === undefined) return "NULL";
@@ -64,11 +64,12 @@ function exportDictionary(jsonFile, key) {
 
   for (const entry of entries) {
     const row = `(${rowValues(key, entry)})`;
-    if (batch.length > 0 && batchBytes + row.length > MAX_STATEMENT_BYTES) {
+    const rowBytes = Buffer.byteLength(row, "utf8");
+    if (batch.length > 0 && batchBytes + rowBytes > MAX_STATEMENT_BYTES) {
       flush();
     }
     batch.push(row);
-    batchBytes += row.length;
+    batchBytes += rowBytes;
   }
   flush();
 
