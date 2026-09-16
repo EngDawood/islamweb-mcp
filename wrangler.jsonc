@@ -1,7 +1,7 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  "$schema": "worker/node_modules/wrangler/config-schema.json",
   "name": "islamweb-dictionaries-mcp",
-  "main": "src/index.ts",
+  "main": "worker/src/index.ts",
   // Bump this to today's date if you redeploy later.
   "compatibility_date": "2026-09-16",
   "compatibility_flags": ["nodejs_compat"],

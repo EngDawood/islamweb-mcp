@@ -3,3 +3,4 @@ node_modules/
 sql-import/
 *.log
 .dev.vars
+worker-configuration.d.ts

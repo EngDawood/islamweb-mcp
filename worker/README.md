@@ -27,8 +27,10 @@ npx wrangler login          # opens a browser to authorize this machine
 npm run db:create           # prints a database_id
 ```
 
-Paste the printed `database_id` into `wrangler.jsonc`'s `d1_databases[0].database_id`
-(it's currently a placeholder).
+Paste the printed `database_id` into `../wrangler.jsonc`'s `d1_databases[0].database_id`
+(it's currently a placeholder). The config file lives at the repo root, not in
+this folder — `wrangler` auto-discovers it by walking up from `worker/`, so
+every command below still runs from inside `worker/` as normal.
 
 ## 3. Create the schema
 
