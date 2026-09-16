@@ -30,3 +30,21 @@ CREATE VIRTUAL TABLE IF NOT EXISTS entries_fts USING fts5(
   content_rowid='rowid',
   tokenize='unicode61 remove_diacritics 2'
 );
+
+-- Keep entries_fts in sync incrementally instead of periodic full rebuilds
+-- (a full 'rebuild' re-touches every row and is expensive on D1's daily
+-- rows-written quota). `INSERT OR REPLACE` — what the importers use — is a
+-- delete of the conflicting row followed by an insert of the new one, so
+-- both the delete and insert triggers fire per replaced row.
+CREATE TRIGGER IF NOT EXISTS entries_ai AFTER INSERT ON entries BEGIN
+  INSERT INTO entries_fts(rowid, lemma, text) VALUES (new.rowid, new.lemma, new.text);
+END;
+
+CREATE TRIGGER IF NOT EXISTS entries_ad AFTER DELETE ON entries BEGIN
+  INSERT INTO entries_fts(entries_fts, rowid, lemma, text) VALUES ('delete', old.rowid, old.lemma, old.text);
+END;
+
+CREATE TRIGGER IF NOT EXISTS entries_au AFTER UPDATE ON entries BEGIN
+  INSERT INTO entries_fts(entries_fts, rowid, lemma, text) VALUES ('delete', old.rowid, old.lemma, old.text);
+  INSERT INTO entries_fts(rowid, lemma, text) VALUES (new.rowid, new.lemma, new.text);
+END;
