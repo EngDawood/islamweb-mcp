@@ -1,0 +1,25 @@
+{
+  "name": "islamweb-mcp-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create islamweb-dictionaries",
+    "db:schema:local": "wrangler d1 execute islamweb-dictionaries --local --file=./schema.sql",
+    "db:schema:remote": "wrangler d1 execute islamweb-dictionaries --remote --file=./schema.sql",
+    "export:sql": "node scripts/export-to-sql.mjs",
+    "typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "agents": "^0.23.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260916.0",
+    "typescript": "^5.6.3",
+    "wrangler": "^4.132.0"
+  }
+}

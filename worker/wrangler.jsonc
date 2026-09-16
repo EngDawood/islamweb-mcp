@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "islamweb-dictionaries-mcp",
+  "main": "src/index.ts",
+  // Bump this to today's date if you redeploy later.
+  "compatibility_date": "2026-09-16",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "MCP_OBJECT", "class_name": "IslamwebMcp" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["IslamwebMcp"] }
+  ],
+
+  // Run `npm run db:create`, then paste the returned database_id here.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "islamweb-dictionaries",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+    }
+  ],
+
+  "observability": { "enabled": true }
+}

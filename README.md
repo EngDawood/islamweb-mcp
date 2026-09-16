@@ -19,6 +19,10 @@ definitions. A [scheduled GitHub Action](.github/workflows/crawl-dictionaries.ym
 runs the crawl every 6 hours, resuming and committing new data automatically —
 see "Keeping the data fresh" below.
 
+For a hosted, remote version of this (no local server to run) see
+[`worker/`](worker/) — the same 5 dictionaries served as a Streamable HTTP MCP
+server from a Cloudflare Worker + D1, deployable to your own Cloudflare account.
+
 ## How the site works (reverse-engineered)
 
 Each dictionary page lives at `https://www.islamweb.net/ar/library/content/{bookId}/{id}`
