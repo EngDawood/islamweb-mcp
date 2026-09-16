@@ -9,7 +9,10 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.resolve(__dirname, "../../data");
 const OUT_DIR = path.resolve(__dirname, "../sql-import");
-const ROWS_PER_STATEMENT = 20;
+// D1 rejects overly large single statements (SQLITE_TOOBIG). Some entries
+// (e.g. long Lisan al-Arab entries) run tens of KB each, so batch by
+// cumulative byte size rather than a fixed row count.
+const MAX_STATEMENT_BYTES = 80_000;
 
 function sqlString(value) {
   if (value === null || value === undefined) return "NULL";
@@ -48,11 +51,27 @@ const COLUMNS =
 function exportDictionary(jsonFile, key) {
   const entries = JSON.parse(readFileSync(jsonFile, "utf8"));
   const lines = [];
-  for (let i = 0; i < entries.length; i += ROWS_PER_STATEMENT) {
-    const batch = entries.slice(i, i + ROWS_PER_STATEMENT);
-    const values = batch.map((e) => `(${rowValues(key, e)})`).join(",\n  ");
+  let batch = [];
+  let batchBytes = 0;
+
+  function flush() {
+    if (batch.length === 0) return;
+    const values = batch.join(",\n  ");
     lines.push(`INSERT OR REPLACE INTO entries ${COLUMNS} VALUES\n  ${values};`);
+    batch = [];
+    batchBytes = 0;
   }
+
+  for (const entry of entries) {
+    const row = `(${rowValues(key, entry)})`;
+    if (batch.length > 0 && batchBytes + row.length > MAX_STATEMENT_BYTES) {
+      flush();
+    }
+    batch.push(row);
+    batchBytes += row.length;
+  }
+  flush();
+
   mkdirSync(OUT_DIR, { recursive: true });
   const outFile = path.join(OUT_DIR, `${key}.sql`);
   writeFileSync(outFile, lines.join("\n\n") + "\n", "utf8");
